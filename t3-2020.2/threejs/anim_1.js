@@ -2,40 +2,79 @@ function WaveAnimation() {}
 
 Object.assign( WaveAnimation.prototype, {
 
+    anchored_motion : function(limb_name, pivot, theta) {
+        let limb =  robot.getObjectByName(limb_name);
+        let [x, y, z] = [limb.position.x, limb.position.y, limb.position.z];
+        //let pivot = {x: 0, y: 2, z:0};
+
+        limb.matrix.makeTranslation(0,0,0)
+        .premultiply( new THREE.Matrix4().makeTranslation(-pivot.x, -pivot.y, -pivot.z ) )
+        .premultiply( new THREE.Matrix4().makeRotationZ(theta))
+        .premultiply( new THREE.Matrix4().makeTranslation(pivot.x, pivot.y, pivot.z ) )
+        .premultiply( new THREE.Matrix4().makeTranslation(x, y, z ) );
+
+
+
+        // Updating final world matrix (with parent transforms) - mandatory
+        limb.updateMatrixWorld(true);
+        // Updating screen
+        stats.update();
+        renderer.render(scene, camera);    
+    },
     init: function() {
+        let animation = this;
+        let upperRightArmTween = new TWEEN.Tween( {theta:0} )
+        .to( { theta: Math.PI/ 2 }, 500)
+        .onUpdate(function(){
+            animation.anchored_motion("right_upper_arm", {x:-0.25, y:2, z:0}, this._object.theta);
+        });
         
-        let upperArmTween = new TWEEN.Tween( {theta:0} )
-            .to( {theta:Math.PI }, 500)
-            .onUpdate(function(){
-                // This is an example of rotation of the right_upper_arm 
-                // Notice that the transform is M = T * R 
-                
-                let right_upper_arm =  robot.getObjectByName("right_upper_arm");
-                let [x, y, z] = [right_upper_arm.position.x, right_upper_arm.position.y, right_upper_arm.position.z];
-                let pivot = {x:0, y:1, z:0};
-                right_upper_arm.rotateAroundPoint(new THREE.Vector3(2.6,1,0), 1);
-                //right_upper_arm.matrixAutoUpdate = true;
-                let rotated_arm_matrix = right_upper_arm.matrix;
-                console.log(rotated_arm_matrix.elements)
-                right_upper_arm.matrix.getInverse(rotated_arm_matrix);
-                console.log(rotated_arm_matrix.elements)
+        let lowerRightArmTweenUp = new TWEEN.Tween( {theta:0} )
+        .to( { theta: Math.PI/ 2 }, 500)
+        .onUpdate(function(){
+            animation.anchored_motion("right_lower_arm", {x:0, y:1, z:0}, this._object.theta);
+        })
+        let lowerRightArmTweenDown = new TWEEN.Tween( {theta: Math.PI/ 2 } )
+        .to( { theta: 0 }, 500)
+        .onUpdate(function(){
+            animation.anchored_motion("right_lower_arm", {x:0, y:1, z:0}, this._object.theta);
+        })
 
-                // right_upper_arm.rotateAroundPoint(new THREE.Vector3(2.6,1,0), .1);
-                //right_upper_arm.matrix.makeRotationZ(this._object.theta).premultiply( new THREE.Matrix4().makeTranslation(2.6, 0, 0 ) );
+        let headTween = new TWEEN.Tween( {theta: 0 } )
+        .to( { theta: (1 * Math.PI)/ 10 }, 500)
+        .onUpdate(function(){
+            animation.anchored_motion("head", {x:-.1, y:-1, z:0}, this._object.theta);
+        }).start()
+        
+        let leftArmTween = new TWEEN.Tween( {theta: 0 } )
+        .to( { theta: -(1 * Math.PI)/ 30 }, 500)
+        .onUpdate(function(){
+            animation.anchored_motion("left_upper_arm", {x:-0.25, y:2, z:0}, this._object.theta);
+        })
 
 
+       
+        new TWEEN.Tween( {theta: 0 } )
+        .to( { theta: -(1 * Math.PI)/ 20 }, 500)
+        .onUpdate(function(){
+            animation.anchored_motion("left_lower_arm", {x:0, y:1, z:0}, this._object.theta);
+        }).start() 
+        
+        new TWEEN.Tween( {theta: 0 } )
+        .to( { theta: -(1 * Math.PI)/ 10 }, 500)
+        .onUpdate(function(){
+            animation.anchored_motion("left_hand", {x:0, y:0, z:0}, this._object.theta);
+        }).start() 
 
-                // Updating final world matrix (with parent transforms) - mandatory
-                right_upper_arm.updateMatrixWorld(true);
-                // Updating screen
-                stats.update();
-                renderer.render(scene, camera);    
-            })
-        // Here you may include animations for other parts 
+        upperRightArmTween.chain(lowerRightArmTweenUp);
+        lowerRightArmTweenUp.chain(lowerRightArmTweenDown);
+        lowerRightArmTweenDown.chain(lowerRightArmTweenUp)
+
             
         
         //  upperArmTween.chain( ... ); this allows other related Tween animations occur at the same time
-        upperArmTween.start();       
+        upperRightArmTween.start();  
+        leftArmTween.start();   
     },
     animate: function(time) {
         

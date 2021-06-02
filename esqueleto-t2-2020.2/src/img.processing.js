@@ -8,8 +8,8 @@
 
     function ImageProcesser(img, kernel = null, xform = null, bhandler = 'icrop') {
         this.img = img.clone();
-        this.width = img.shape[0];
-        this.heigth = img.shape[1];
+        this.width = img.shape[1];
+        this.height = img.shape[0];
         this.kernel = kernel;
         this.xform = xform;
         this.bhandler = bhandler;
@@ -18,6 +18,10 @@
     Object.assign( ImageProcesser.prototype, {
 
         apply_kernel: function(border = 'icrop') {
+            console.log(this.img)
+            this.img.data.array.forEach((cell, index) => {
+                
+            });
             // Method to apply kernel over image (incomplete)
             // border: 'icrop' is for cropping image borders, 'extend' is for extending image border
             // You may create auxiliary functions/methods if you'd like
@@ -32,7 +36,7 @@
         update: function() {
             // Method to process image and present results
             var start = new Date().valueOf();
-            console.log("mario")
+
             if(this.kernel != null) {
                 this.apply_kernel(this.bhandler);
             }
@@ -43,8 +47,9 @@
 
             // Loading HTML elements and saving
             var $transformed = document.getElementById('transformed');
-            $transformed.width = this.width; $transformed.height = this.height;
-            nj.images.save(trasformed, $transformed);
+            $transformed.width = this.width; 
+            $transformed.height = this.height;
+            nj.images.save(this.img, $transformed);
             var duration = new Date().valueOf() - start;
             document.getElementById('duration').textContent = '' + duration;
         }

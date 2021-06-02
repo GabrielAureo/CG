@@ -32,8 +32,8 @@ function gen_robot() {
     var right_upper_arm = left_upper_arm.clone();  
     right_upper_arm.name = "right_upper_arm";
     right_upper_arm.position.x = 2.6;
-    right_upper_leg.children[0].name = "right_lower_arm"
-    right_upper_leg.children[0].children[0].name = "right_hand"
+    right_upper_arm.children[0].name = "right_lower_arm"
+    right_upper_arm.children[0].children[0].name = "right_hand"
 
     // left: upper leg, leg, foot
     var left_upper_leg = gen_rect(1.5,4);
