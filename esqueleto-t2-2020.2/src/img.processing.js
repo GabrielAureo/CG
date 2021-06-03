@@ -18,10 +18,15 @@
     Object.assign( ImageProcesser.prototype, {
 
         apply_kernel: function(border = 'icrop') {
-            console.log(this.img)
-            this.img.data.array.forEach((cell, index) => {
-                
-            });
+            let data = this.img;
+            console.log(data)
+            console.log(data.get(0,0))
+            for(var i=0; i< data.shape[0]; i++){
+                for(var j = 0; j< data.shape[1]; j++){
+                    //console.log(data.get(i,j))
+                    data.set(i,j, Math.sin(data.get(i,j) * 255))
+                }
+            }
             // Method to apply kernel over image (incomplete)
             // border: 'icrop' is for cropping image borders, 'extend' is for extending image border
             // You may create auxiliary functions/methods if you'd like
