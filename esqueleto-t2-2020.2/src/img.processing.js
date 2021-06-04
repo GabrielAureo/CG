@@ -29,15 +29,15 @@
         }
         return res;
     }
-    function convolution(matrix, scalar = 1, kernel = box){
-        let new_matrix = matrix.clone();
+    function convolution(matrix, kernel = box){
+        let new_matrix = nj.zeros(matrix.shape)
 
         for(let i = 1 ; i < matrix.shape[0] - 1; i++){
-            for(let j = 1; j< matrix.shape[1] - 1; j++){
+            for(let j = 1; j < matrix.shape[1] - 1; j++){
 
-                let sub = matrix.slice([i - 1, i + 2], [j - 1, j + 2], false)
+                let sub = matrix.slice([i - 1, i + 2], [j - 1, j + 2])
                 
-                let f = scalar * multiply(sub, nj.array(kernel)).sum()
+                let f = multiply(sub, nj.array(kernel)).sum()
 
                 new_matrix.set(i,j, f)
 
@@ -65,13 +65,16 @@
             var new_img;
             switch(kernel){
                 case 'box':
-                    new_img = convolution(data, 1/9)
+                    new_img = convolution(data).multiply(1/9)
+                    console.log(new_img)
                     break;
                     
                 case 'sobel':
-                    let box = convolution(data, 1/9)
-                    let gx = convolution(box, 1, sobel_x)
-                    let gy = convolution(box, 1, sobel_y)
+                    let box = convolution(data)
+                    let gx = convolution(box, sobel_x).multiply(1/8)
+                    let gy = convolution(box, sobel_y).multiply(1/8)
+                    // let gx = nj.convolve(box, sobel_x)
+                    // let gy = nj.convolve(box, sobel_y)
                     new_img = nj.add(gx, gy)
                     break;
             }
