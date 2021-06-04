@@ -4,9 +4,13 @@
 	(global = global || self, factory(global.ImageProcessing = {}));
 }(this, (function (exports) { 'use strict';
 
-    const sobel_x = [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]
-    const sobel_y = [[ 1, 2, 1], [ 0, 0, 0], [-1,-2,-1]]
-    const box = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
+    const kernels = {
+        sobel_x : [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]],
+        sobel_y : [[ 1, 2, 1], [ 0, 0, 0], [-1,-2,-1]],
+        box : [[1, 1, 1], [1, 1, 1], [1, 1, 1]],
+        laplace : [[0, -1, 0], [-1, 4, -1], [0, -1, 0]]
+    }
+    
     nj.config.printThreshold = 28
     function ImageProcesser(img, kernel = null, xform = null, bhandler = 'icrop') {
         this.img = img.clone();
@@ -29,22 +33,52 @@
         }
         return res;
     }
-    function convolution(matrix, kernel = box){
-        let new_matrix = nj.zeros(matrix.shape)
+    function convolution(matrix, kernel = box, border = 'icrop'){
 
+        if(border == 'extend'){
+            matrix = extend(matrix)
+        }
+
+        let new_matrix = nj.zeros(matrix.shape)
+        console.log(matrix.toString())
         for(let i = 1 ; i < matrix.shape[0] - 1; i++){
             for(let j = 1; j < matrix.shape[1] - 1; j++){
-
-                let sub = matrix.slice([i - 1, i + 2], [j - 1, j + 2])
                 
-                let f = multiply(sub, nj.array(kernel)).sum()
+                let sub = matrix.slice([i - 1, i + 2], [j - 1, j + 2])
+                if (j == 1){
+                    console.log(sub.toString())
+                }
+                let f = multiply(sub, nj.array(kernel).T).sum()
 
                 new_matrix.set(i,j, f)
 
             }
         }
 
+        new_matrix = new_matrix.slice([1,-1], [1, -1]);
+
         return new_matrix
+    }
+
+    function extend(matrix){
+        let data = matrix.clone()
+        //Expand bordas horizontais
+        data = nj.concatenate(data, data.slice(null, - 1))
+        data = nj.concatenate(data.slice(null,[0,1]), data)
+        //Expande bordas verticais
+        data = nj.concatenate(data.T, data.slice(- 1, null).T).T
+        data = nj.concatenate(data.slice([0,1], null).T, data.T).T
+        return data;
+    }
+    function dot(m1, m2){
+        let ret = nj.zeros([m1.shape[0], m2.shape[1]])
+        for(let i = 0; i < m1.shape[0]; i++){
+            for(let j = 0; j < m1.shape[1]; j++){
+                let sum = 0
+                
+                sum += m1.get(i,j) * m2.get(i,j)
+            }
+        }
     }
 
     
@@ -52,34 +86,30 @@
     Object.assign( ImageProcesser.prototype, {
 
         apply_kernel: function(border = 'icrop') {
-            let data = this.img.clone();
+            
 
-            if(border == 'extend'){
-                //Expand bordas horizontais
-                data = nj.concatenate(data, data.slice(null, - 1))
-                data = nj.concatenate(data.slice(null,[0,1]), data)
-                //Expande bordas verticais
-                data = nj.concatenate(data.T, data.slice(- 1, null).T).T
-                data = nj.concatenate(data.slice([0,1], null).T, data.T).T
-            }
             var new_img;
             switch(kernel){
                 case 'box':
-                    new_img = convolution(data).multiply(1/9)
-                    console.log(new_img)
+                    new_img = convolution(this.img, kernels.box, border).multiply(1/9)
                     break;
                     
                 case 'sobel':
-                    let box = convolution(data)
-                    let gx = convolution(box, sobel_x).multiply(1/8)
-                    let gy = convolution(box, sobel_y).multiply(1/8)
-                    // let gx = nj.convolve(box, sobel_x)
-                    // let gy = nj.convolve(box, sobel_y)
+                    let box = convolution(this.img, kernels.box, 'extend').multiply(1/9)
+                    let gx = convolution(box, kernels.sobel_x, border)
+                    let gy = convolution(box, kernels.sobel_y, border)
+                    // let gx = nj.convolve(box, sobel_x).multiply(1/8)
+                    // let gy = nj.convolve(box, sobel_y).multiply(1/8)
                     new_img = nj.add(gx, gy)
+
                     break;
+                case 'laplace':
+                    new_img = convolution(this.img, kernels.laplace, border)
+                    break;
+
             }
             
-            this.img = new_img.slice([1,-1], [1, -1]);
+            this.img = new_img
             this.width = this.img.shape[1];
             this.height = this.img.shape[0];
 
@@ -93,10 +123,16 @@
         
 
         apply_xform: function()  {
-            let data = nj.zeros(this.img.shape)
-            for(let i = 0; i < data.shape[0]; i++){
-
-            }
+            // let data = nj.ones(this.img.shape)
+            // console.log(data.shape)
+            // for(let i = 0; i < data.shape[0]; i++){
+            //     for(let j = 0; j < data.shape[1]; j++){
+            //         //console.log([i,j])
+            //         let new_pos = nj.dot(this.xform, nj.array([i,j,1]).T)
+            //         data.set(new_pos[0], new_pos[1], this.img.get(i,j))
+            //     }
+            // }
+            // this.img = data
         },
 
         update: function() {
